@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arattai Chat Widget – Shopify Demo</title>
+<style>
+  :root {
+    --brand: #1f6f5c;        /* store accent colour – change to match the theme */
+    --brand-dark: #17574a;
+    --ink: #1d1d1f;
+    --muted: #6b6b70;
+    --line: #e6e6e9;
+    --bg: #fafaf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+
+  /* ---------- mock store (demo only) ---------- */
+  .demo-banner {
+    background: #fff4d6; color: #6a4d00; text-align: center;
+    font-size: 13px; padding: 8px 16px;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 24px; background: #fff; border-bottom: 1px solid var(--line);
+  }
+  .logo { font-weight: 700; font-size: 20px; letter-spacing: .5px; }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 14px; }
+  .hero { padding: 56px 24px 32px; max-width: 1080px; margin: 0 auto; }
+  .hero h1 { font-size: clamp(28px, 5vw, 44px); margin: 0 0 12px; }
+  .hero p { color: var(--muted); max-width: 520px; margin: 0; }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px; max-width: 1080px; margin: 0 auto; padding: 24px 24px 120px;
+  }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .card .img { aspect-ratio: 4/3; background: linear-gradient(135deg, #e9efe9, #d7e3dc); }
+  .card .info { padding: 14px 16px; }
+  .card .name { font-weight: 600; margin-bottom: 4px; }
+  .card .price { color: var(--muted); font-size: 14px; }
+
+  /* ---------- chat widget (this part goes into the theme) ---------- */
+  .acw-launcher {
+    position: fixed; right: 20px; bottom: 20px; z-index: 9999;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--brand); color: #fff; border: 0; border-radius: 999px;
+    padding: 14px 20px; font-size: 15px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .acw-launcher:hover { background: var(--brand-dark); transform: translateY(-2px); }
+  .acw-launcher svg { width: 20px; height: 20px; }
+
+  .acw-panel {
+    position: fixed; right: 20px; bottom: 84px; z-index: 9999;
+    width: 340px; max-width: calc(100vw - 32px);
+    background: #fff; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,.2);
+    opacity: 0; transform: translateY(12px) scale(.98); pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .acw-panel.open { opacity: 1; transform: none; pointer-events: auto; }
+
+  .acw-head { background: var(--brand); color: #fff; padding: 18px 20px 0; }
+  .acw-head-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .acw-title { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+  .acw-sub { font-size: 13px; opacity: .85; margin: 0 0 14px; }
+  .acw-close {
+    background: transparent; border: 0; color: #fff; font-size: 22px;
+    line-height: 1; cursor: pointer; padding: 0 0 0 12px; opacity: .85;
+  }
+  .acw-tabs { display: flex; gap: 4px; }
+  .acw-tab {
+    flex: 1; background: transparent; border: 0; color: rgba(255,255,255,.75);
+    padding: 10px 8px 12px; font-size: 14px; font-weight: 600; cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+  .acw-tab[aria-selected="true"] { color: #fff; border-bottom-color: #fff; }
+
+  .acw-body { padding: 18px 20px 20px; }
+  .acw-agent { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .acw-avatar {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: #e3efe9; color: var(--brand); display: grid; place-items: center;
+    font-weight: 700;
+  }
+  .acw-agent-name { font-weight: 600; }
+  .acw-agent-meta { font-size: 13px; color: var(--muted); }
+  .acw-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2bb673; margin-right: 6px; }
+  .acw-label { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  .acw-msg {
+    width: 100%; min-height: 72px; resize: vertical; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px;
+  }
+  .acw-msg:focus { outline: 2px solid var(--brand); border-color: transparent; }
+  .acw-start {
+    display: block; width: 100%; margin-top: 12px; text-align: center;
+    background: var(--brand); color: #fff; text-decoration: none; border-radius: 10px;
+    padding: 12px; font-weight: 600; font-size: 15px;
+  }
+  .acw-start:hover { background: var(--brand-dark); }
+  .acw-note { font-size: 12px; color: var(--muted); text-align: center; margin: 10px 0 0; }
+
+  @media (max-width: 480px) {
+    .acw-launcher { right: 16px; bottom: 16px; padding: 14px; }
+    .acw-launcher span { display: none; }   /* icon-only on phones */
+    .acw-panel { right: 16px; left: 16px; width: auto; bottom: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">Demo store — the chat button in the bottom-right corner is the widget being proposed.</div>
+
+<header>
+  <div class="logo">Demo Store</div>
+  <nav><a href="#">Shop</a><a href="#">About</a><a href="#">Contact</a></nav>
+</header>
+
+<section class="hero">
+  <h1>Everyday essentials, made well.</h1>
+  <p>Questions about an order or a product? Chat with our team directly on Arattai, with no need to save a number.</p>
+</section>
+
+<section class="grid">
+  <div class="card"><div class="img"></div><div class="info"><div class="name">Cotton Tote Bag</div><div class="price">₹499</div></div></div>
+  <div class="card"><div class="img"></div><div class="info"><div class="name">Ceramic Mug</div><div class="price">₹349</div></div></div>
+  <div class="card"><div class="img"></div><div class="info"><div class="name">Notebook Set</div><div class="price">₹299</div></div></div>
+  <div class="card"><div class="img"></div><div class="info"><div class="name">Desk Organiser</div><div class="price">₹799</div></div></div>
+</section>
+
+<!-- ===================== ARATTAI CHAT WIDGET ===================== -->
+<button class="acw-launcher" id="acw-launcher" aria-expanded="false" aria-controls="acw-panel">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  <span>Chat with us</span>
+</button>
+
+<div class="acw-panel" id="acw-panel" role="dialog" aria-label="Chat with us on Arattai">
+  <div class="acw-head">
+    <div class="acw-head-top">
+      <div>
+        <p class="acw-title">Hi there 👋</p>
+        <p class="acw-sub">Choose a team and we'll reply on Arattai.</p>
+      </div>
+      <button class="acw-close" id="acw-close" aria-label="Close chat">×</button>
+    </div>
+    <div class="acw-tabs" role="tablist" id="acw-tabs"></div>
+  </div>
+  <div class="acw-body" id="acw-body"></div>
+</div>
+
+<script>
+/*
+ * CONFIG – the only part the store owner needs to edit.
+ * `link` is the Arattai chat link for each number or username
+ * (created in the Arattai app). The widget appends ?text=<message>
+ * so the customer's message is pre-filled in the chat.
+ */
+const ARATTAI_CHATS = [
+  {
+    tab: "Sales",
+    agent: "Sales Team",
+    hours: "Mon–Sat, 10am–7pm",
+    link: "ARATTAI_CHAT_LINK_1",   // replace with the first chat link
+    message: "Hi! I have a question about a product."
+  },
+  {
+    tab: "Support",
+    agent: "Order Support",
+    hours: "Mon–Sat, 10am–7pm",
+    link: "ARATTAI_CHAT_LINK_2",   // replace with the second chat link
+    message: "Hi! I need help with my order."
+  }
+];
+
+(function () {
+  const launcher = document.getElementById("acw-launcher");
+  const panel = document.getElementById("acw-panel");
+  const closeBtn = document.getElementById("acw-close");
+  const tabsEl = document.getElementById("acw-tabs");
+  const bodyEl = document.getElementById("acw-body");
+  let active = 0;
+
+  function buildLink(base, text) {
+    if (!base || base.startsWith("ARATTAI_CHAT_LINK")) return null;
+    const sep = base.includes("?") ? "&" : "?";
+    return base + sep + "text=" + encodeURIComponent(text);
+  }
+
+  function initials(name) {
+    return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  }
+
+  function render() {
+    tabsEl.innerHTML = "";
+    ARATTAI_CHATS.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "acw-tab";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", i === active);
+      b.textContent = c.tab;
+      b.onclick = () => { active = i; render(); };
+      tabsEl.appendChild(b);
+    });
+
+    const c = ARATTAI_CHATS[active];
+    bodyEl.innerHTML = `
+      <div class="acw-agent">
+        <div class="acw-avatar">${initials(c.agent)}</div>
+        <div>
+          <div class="acw-agent-name">${c.agent}</div>
+          <div class="acw-agent-meta"><span class="acw-dot"></span>${c.hours}</div>
+        </div>
+      </div>
+      <p class="acw-label">Your message</p>
+      <textarea class="acw-msg" id="acw-msg">${c.message}</textarea>
+      <a class="acw-start" id="acw-start" target="_blank" rel="noopener">Start chat on Arattai</a>
+      <p class="acw-note">Opens Arattai with your message ready to send.</p>
+    `;
+
+    const msg = document.getElementById("acw-msg");
+    const start = document.getElementById("acw-start");
+    const update = () => {
+      const url = buildLink(c.link, msg.value);
+      start.href = url || "#";
+    };
+    start.onclick = (e) => {
+      if (!buildLink(c.link, msg.value)) {
+        e.preventDefault();
+        alert("Demo mode: the store's real Arattai chat link goes here.\nPre-filled message:\n\n" + msg.value);
+      }
+    };
+    msg.oninput = update;
+    update();
+  }
+
+  function setOpen(open) {
+    panel.classList.toggle("open", open);
+    launcher.setAttribute("aria-expanded", open);
+    if (open) setTimeout(() => document.getElementById("acw-msg")?.focus(), 150);
+  }
+
+  launcher.onclick = () => setOpen(!panel.classList.contains("open"));
+  closeBtn.onclick = () => setOpen(false);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") setOpen(false); });
+
+  render();
+})();
+</script>
+<!-- =================== END ARATTAI CHAT WIDGET =================== -->
+
+</body>
+</html>
